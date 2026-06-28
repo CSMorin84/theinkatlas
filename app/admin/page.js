@@ -91,16 +91,15 @@ export default function AdminPage() {
         const ext = file.name.split('.').pop()
         const path = `${slug}/${Date.now()}-${i}.${ext}`
         const { error: uploadError } = await supabase.storage
-          .from('artist-images')
-          .upload(path, file, { upsert: true })
+  .from('artist-images')
+  .upload(path, file, { upsert: true })
 
-        if (uploadError) throw uploadError
+if (uploadError) throw uploadError
 
-        const { data: urlData } = supabase.storage
-          .from('artist-images')
-          .getPublicUrl(path)
+const supabaseBase = process.env.NEXT_PUBLIC_SUPABASE_URL
+const publicUrl = `${supabaseBase}/storage/v1/object/public/artist-images/${path}`
 
-        works.push({ image_url: urlData.publicUrl, label: '' })
+works.push({ image_url: publicUrl, label: '' })
       }
 
       // Insert artist record
