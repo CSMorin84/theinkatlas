@@ -83,26 +83,32 @@ export default function AdminPage() {
 
     try {
       const slug = slugify(form.name)
+      const supabaseBase = process.env.NEXT_PUBLIC_SUPABASE_URL
+      const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
-      // Upload images to Supabase storage
       const works = []
       for (let i = 0; i < images.length; i++) {
         const file = images[i]
         const ext = file.name.split('.').pop()
         const path = `${slug}/${Date.now()}-${i}.${ext}`
-        const { error: uploadError } = await supabase.storage
-  .from('artist-images')
-  .upload(path, file, { upsert: true })
 
-if (uploadError) throw uploadError
+        const uploadUrl = `${supabaseBase}/storage/v1/object/artist-images/${path}`
 
-const supabaseBase = process.env.NEXT_PUBLIC_SUPABASE_URL
-const publicUrl = `${supabaseBase}/storage/v1/object/public/artist-images/${path}`
+        const res = await fetch(uploadUrl, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${supabaseKey}`,
+            'Content-Type': file.type,
+          },
+          body: file,
+        })
 
-works.push({ image_url: publicUrl, label: '' })
+        if (!res.ok) throw new Error(`Upload failed: ${res.statusText}`)
+
+        const publicUrl = `${supabaseBase}/storage/v1/object/public/artist-images/${path}`
+        works.push({ image_url: publicUrl, label: '' })
       }
 
-      // Insert artist record
       const { error: insertError } = await supabase.from('artists').insert({
         name: form.name,
         slug,
@@ -138,7 +144,6 @@ works.push({ image_url: publicUrl, label: '' })
     setSaving(false)
   }
 
-  // Password screen
   if (!authed) {
     return (
       <div style={{
@@ -193,7 +198,6 @@ works.push({ image_url: publicUrl, label: '' })
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
 
-          {/* Basic info */}
           <Section label="Basic Info">
             <Row>
               <Field label="Artist Name *" value={form.name} onChange={v => handleField('name', v)} placeholder="e.g. Mara Voss" />
@@ -205,7 +209,6 @@ works.push({ image_url: publicUrl, label: '' })
             </Row>
           </Section>
 
-          {/* Bio */}
           <Section label="Bio">
             <textarea
               value={form.bio}
@@ -221,7 +224,6 @@ works.push({ image_url: publicUrl, label: '' })
             />
           </Section>
 
-          {/* Styles */}
           <Section label="Styles">
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
               {STYLES_OPTIONS.map(s => (
@@ -237,7 +239,6 @@ works.push({ image_url: publicUrl, label: '' })
             </div>
           </Section>
 
-          {/* Contact & Links */}
           <Section label="Contact & Links">
             <Row>
               <Field label="Booking / Contact" value={form.contact} onChange={v => handleField('contact', v)} placeholder="email or booking link" />
@@ -249,7 +250,6 @@ works.push({ image_url: publicUrl, label: '' })
             </Row>
           </Section>
 
-          {/* Images */}
           <Section label={`Portfolio Images (${images.length}/10)`}>
             {imagePreviews.length > 0 && (
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 3, marginBottom: 12 }}>
@@ -285,7 +285,6 @@ works.push({ image_url: publicUrl, label: '' })
             )}
           </Section>
 
-          {/* Submit */}
           {error && (
             <div style={{ fontSize: 12, color: '#8c4a4a', fontFamily: 'monospace', padding: '10px 0' }}>{error}</div>
           )}
